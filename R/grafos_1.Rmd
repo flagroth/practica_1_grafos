@@ -1,0 +1,69 @@
+---
+title: "Grafos 1"
+author: "Javier Cano Montero"
+date: "27 de febrero de 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(igraph)
+```
+
+```{r x}
+
+```
+
+```{r 1}
+df <- read.table("data/out.ego-twitter")
+g <- graph_from_data_frame(df)
+```
+
+
+```{r 2}
+
+```
+
+```{r 3}
+degree(g)
+```
+
+```{r 4}
+sg <- subgraph(g, c(190,191,192,193,194,13167))
+plot(sg)
+```
+
+```{r 5}
+# Max followers
+which.max(degree(g, mode="in"))
+# Max following
+which.max(degree(g, mode="out"))
+```
+
+```{r 6}
+
+```
+
+```{r 7}
+
+```
+
+```{r 8}
+
+```
+
+```{r 9}
+clique_num(g)
+```
+
+```{r 10}
+
+```
+
+```{r 11a}
+
+```
+
+```{r 11b}
+
+```
