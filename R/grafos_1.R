@@ -15,3 +15,15 @@ g <- simplify(g)
 
 deg <- degree(g)
 summary(deg)
+
+# sg <- subgraph(g, c(190,191,192,193,194,13167))
+
+sg <- induced_subgraph(g, V(g)[which(V(g)$name %in% c("190","191","192","193","194","13167"))])
+plot(sg)
+
+# Max followers
+which.max(degree(g, mode="in"))
+# Max following
+which.max(degree(g, mode="out"))
+
+clique_num(g)

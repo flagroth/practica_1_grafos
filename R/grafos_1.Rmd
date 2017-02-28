@@ -29,7 +29,7 @@ degree(g)
 ```
 
 ```{r 4}
-sg <- subgraph(g, c(190,191,192,193,194,13167))
+sg <- induced_subgraph(g, V(g)[which(V(g)$name %in% c("190","191","192","193","194","13167"))])
 plot(sg)
 ```
 
