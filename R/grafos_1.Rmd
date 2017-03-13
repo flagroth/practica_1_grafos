@@ -1,41 +1,90 @@
 ---
-title: "Grafos 1"
+title: "Análisis	de	grafos	y	Redes	Sociales. Hoja	de	ejercicios	1:	Teoría	de	grafos"
 author: "Javier Cano Montero"
 date: "27 de febrero de 2017"
-output: html_document
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+
 ---
 
-```{r setup, include=FALSE, message=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-library(igraph)
-```
+# Análisis de Twitter.
+
+El	 grafo	 out.ego-twitter 	 almacena	 información	 acerca	 de	 usuarios	 de	 Twitter.	 En	
+concreto,	 se	 trata	 de	 un	 grafo	 dirigido	 no	 ponderado	 donde	 cada	 vértice	 representa	 a	 un	
+usuario,	mientras	que	una	arista	(v, u)	indica	que	el	usuario	v	sigue	al	usuario	u.	El	objetivo	
+de	 esta	 hoja	 de	 ejercicios	 es	 analizar	 la	 estructura	 de	 este	 grafo	 y	 extraer	 diferentes	
+características	estructurales	del	mismo.	
+
+## 1. Carga del grafo en memoria.
+
+Cargamos la librería **igraph** y leemos los datos del directorio **data**. A continuación convertimos la tabla de aristas en un grafo mediante la función **graph_from_data_frame**. Finalmente, como ya no necesitamos el data frame lo eliminamos para liberar memoria.
 
 ```{r 1}
+library(igraph)
+
 df <- read.table("/home/javier/practica_1_grafos/data/out.ego-twitter")
 g <- graph_from_data_frame(df)
 rm(df)
 ```
 
+## 2. Mostrando el grafo.
+
+El grafo se trata de una representación gráfica de la red social Twitter. El grafo representa cómo los usuarios se siguen entre ellos, por tanto, una arista del vértice **A** al vértice **B** representa que el usuario **A** sigue al **B**. Esta relación es unidireccional, ya que a diferencia de otras redes sociales, en Twitter **B** no está obligado a seguir a **A**. Por tanto este tipo de relación establece relaciones direccionales. Además las relaciones son únicas, un usuario sólo puede seguir una vez a otro usuario, por lo que no es necesario introducir pesos a las aristas.
+
+Para mostrar el grafo y que sea mínimamente "visible" le modificaremos la estética de los vértices (tamaño, color,...) y las aristas (tamaño y tamaño de la flecha). También usaremos el layout DrL para organizar los vértices.
+
+Viendo la representación del grafo, podemos confirmar que se trata de un grafo dirigido sin pesos no conexo.
 
 ```{r 2}
-V(g)$size <- 8
+
+V(g)$size <- 3
 V(g)$frame.color <- "white"
 V(g)$color <- "orange"
 V(g)$label <- "" 
+
+E(g)$size <- 0.01
 E(g)$arrow.mode <- 1
-plot(g)
+E(g)$arrow.size <- 0.1
+
+
+l <- layout_with_drl(g, dim = 2)
+
+plot(g, layout=l)
 ```
 
+## 3. ¿Qué es el grado de un vértice en este grafo?
+
+El grado de un vértice en un grafo sin pesos es el número de aristas que tiene ese vértice, tanto de entrada como de salida. Específicamente en este grafo esta medida representa el número de usuarios a los que un usuario sigue o le siguen.
+
+Viendo la distribución de los grados en este grafo podemos ver que la gran mayoría de los usuarios tienen grado 1 y en media es de 2.833. También vemos que el grado máximo de un usuario es de 239.
+
 ```{r 3}
-hist(degree(g))
+hist(degree(g),breaks = 100)
 summary(degree(g))
 ```
 
+
+## 4. Comunidad 190, 191, 192, 193, 194 y 13167
+
+Esta comunidad no es fuertemente conexa porque no hay ninguna arista que tenga como objetivo al nodo 191. Sin embargo, sí que podemos decir que es una comunidad conexa.
+
 ```{r 4}
+E(g)$arrow.size <- 0.5
 sg <- induced_subgraph(g, V(g)[which(V(g)$name %in% c("190","191","192","193","194","13167"))])
+
+V(sg)$size <- 10
+V(sg)$label=V(sg)$name
+V(sg)$label.cex=0.7
+
 plot(sg)
 ```
-No es fuertemente conexo
+
+## 5. ¿Quién tiene más seguidores?¿Quién sigue a más personas?
+
+El usuario que tiene más seguidores (aristas entrantes) es 708. El usuario sigue a más personas (aristas salientes) es 398.
+
 ```{r 5}
 # Max followers
 which.max(degree(g, mode="in"))
@@ -43,26 +92,57 @@ which.max(degree(g, mode="in"))
 which.max(degree(g, mode="out"))
 ```
 
+
+## 6. ¿Quién sigue a 1305?
+
+Con la lista de adyacencias podemos estudiar qué nodos tienen aristas entrantes al vértice 1305. Se muestran a continuación:
+
 ```{r 6a}
 adjacent_vertices(g,V(g)[V(g)$name=="1305"],mode="in")
 ```
 
+## 7. ¿A quién sigue 1373?
+
+Del mismo modo podemos estudiar cuáles son los nodos objetivo de las aristas salientes del vértice 1373. Se muestran a continuación:
 
 ```{r 7}
 adjacent_vertices(g,V(g)[V(g)$name=="1373"],mode="out")
 ```
+
+
+## 8. ¿Cuál es el ratio de seguidores/siguiendo de 13815?
+
+Para calcular el ratio basta con calcular el número de aristas entrantes/aristas salientes.
 
 ```{r 8}
 id <- V(g)[V(g)$name=="13815"]
 length(adjacent_vertices(g,id,mode="in")[[1]])/length(adjacent_vertices(g,id,mode="out")[[1]])
 ```
 
-```{r 9}
-is.connected(g)
+Dado que este ratio es menor que 1, quiere decir que tiene más aristas saliente que entrantes (sigue a más usuarios que usuarios le siguen a él), por lo que podemos afirmar que es un usuario poco influyente.
 
+## 9. ¿Es el grafo una gran comunidad?
+
+Como hemos visto en el segundo punto, el grafo no es conexo, por lo que forma distintas comunidades.
+
+```{r 9a}
+# Comprobamos si es conexo.
+is.connected(g)
+```
+
+Para calcular las comunidades usaremos el clustering infomap[http://igraph.org/r/doc/cluster_infomap.html]. 
+
+
+```{r 9b}
+# Calculamos las comunidades con infomap e imprimimos las comunidades por pantalla.
 cl <- cluster_infomap(g)
 print(sizes(cl))
 ```
+
+
+## 10. Estudiando la comunidad de 35 usuarios.
+
+Para estudiar la comunidad de 35 usuarios, primero buscaremos el identificador dado por el algoritmo de clustering y calcularemos su subgrafo.
 
 ```{r 10}
 id_com <- which(sizes(cl)==35)
@@ -71,12 +151,30 @@ degree(sg)
 plot(sg)
 ```
 
+Como se puede ver en la representación y en el estudio de los grados del subgrafo, el usuario 1445 es el más importante de esta comunidad con grado 34 y el resto de usuarios sólo tienen una conexión con este usuario.
+
+## 11. Estudiando la comunidad más grande.
+
+Como hemos hecho en el paso anterior, primero procederemos a identificar qué comunidad es la más grande de las obtenidas por el algoritmo de clustering y calcularemos su subgrafo.
+
 ```{r 11a}
 id_max <- which.max(sizes(cl))
 sg <- induced_subgraph(g,V(g)[cl$membership==id_max])
+```
+
+Para saber qué usuario es el más cercano usaremos la medida de centralidad **closeness**. Vemos que el usuario más cercano al resto es 215.
+
+```{r 11b}
 which.max(closeness(sg))
 ```
 
-```{r 11b}
+El usuario que controla el mayor flujo de información es el que tenga mayor **betweenness**. Este usuario es 787.
+
+```{r 11c}
 which.max(betweenness(sg))
 ```
+
+# Conclusiones.
+
+Se ha realizado un estudio de un subconjunto de usuarios de Twitter y cómo se relacionan entre ellos usando únicamente la acción **seguir**. Se ha estudiado con la librería **igraph** cómo cargar un grafo desde un csv, el significado de distintas medidas de centralidad y cómo extraer subgrafos.
+
